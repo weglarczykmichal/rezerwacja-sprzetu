@@ -130,6 +130,110 @@ app.post("/api/equipment", authRequired, adminRequired, (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, name: name.trim() });
 });
 
+// Pomocnicza funkcja: czy tekst jest poprawną datą w formacie RRRR-MM-DD
+function isValidDate(text) {
+  if (typeof text !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(text))
+    return false;
+  const d = new Date(text);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === text;
+}
+
+// Utworzenie rezerwacji
+app.post("/api/reservations", authRequired, (req, res) => {
+  const { equipment_id, start_date, end_date, comment } = req.body;
+
+  if (!Number.isInteger(equipment_id)) {
+    return res.status(400).json({ error: "Niepoprawny sprzęt" });
+  }
+  if (!isValidDate(start_date) || !isValidDate(end_date)) {
+    return res.status(400).json({ error: "Daty muszą mieć format RRRR-MM-DD" });
+  }
+  if (end_date < start_date) {
+    return res
+      .status(400)
+      .json({ error: "Data końca nie może być wcześniejsza niż początku" });
+  }
+  if (
+    comment !== undefined &&
+    (typeof comment !== "string" || comment.length > 300)
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Komentarz może mieć maksymalnie 300 znaków" });
+  }
+
+  const item = db
+    .prepare("SELECT id FROM equipment WHERE id = ?")
+    .get(equipment_id);
+  if (!item) {
+    return res.status(404).json({ error: "Nie ma takiego sprzętu" });
+  }
+
+  // Czy sprzęt jest już zajęty w tym terminie?
+  const conflict = db
+    .prepare(
+      `SELECT id FROM reservations
+       WHERE equipment_id = ?
+         AND status IN ('pending', 'approved')
+         AND start_date <= ? AND end_date >= ?`,
+    )
+    .get(equipment_id, end_date, start_date);
+  if (conflict) {
+    return res
+      .status(409)
+      .json({ error: "Sprzęt jest już zarezerwowany w tym terminie" });
+  }
+
+  const result = db
+    .prepare(
+      "INSERT INTO reservations (user_id, equipment_id, start_date, end_date, comment) VALUES (?, ?, ?, ?, ?)",
+    )
+    .run(req.user.id, equipment_id, start_date, end_date, comment ?? null);
+
+  res.status(201).json({ id: result.lastInsertRowid });
+});
+
+// Moje rezerwacje (user_id bierzemy z tokenu, nie z żądania)
+app.get("/api/reservations/my", authRequired, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT r.id, r.equipment_id, e.name AS equipment_name,
+              r.start_date, r.end_date, r.status, r.comment
+       FROM reservations r
+       JOIN equipment e ON e.id = r.equipment_id
+       WHERE r.user_id = ?
+       ORDER BY r.start_date`,
+    )
+    .all(req.user.id);
+  res.json(rows);
+});
+
+// Odwołanie rezerwacji (tylko własnej)
+app.delete("/api/reservations/:id", authRequired, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: "Niepoprawny identyfikator" });
+  }
+
+  const reservation = db
+    .prepare("SELECT * FROM reservations WHERE id = ?")
+    .get(id);
+  if (!reservation) {
+    return res.status(404).json({ error: "Nie ma takiej rezerwacji" });
+  }
+  if (reservation.user_id !== req.user.id) {
+    return res.status(403).json({ error: "To nie jest Twoja rezerwacja" });
+  }
+  if (reservation.status === "cancelled") {
+    return res.status(409).json({ error: "Rezerwacja jest już odwołana" });
+  }
+
+  db.prepare("UPDATE reservations SET status = 'cancelled' WHERE id = ?").run(
+    id,
+  );
+  res.json({ ok: true });
+});
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Serwer działa na http://localhost:${PORT}`);
