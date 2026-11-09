@@ -234,6 +234,59 @@ app.delete("/api/reservations/:id", authRequired, (req, res) => {
   res.json({ ok: true });
 });
 
+// Wszystkie rezerwacje (tylko admin)
+app.get("/api/admin/reservations", authRequired, adminRequired, (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT r.id, u.email, e.name AS equipment_name,
+              r.start_date, r.end_date, r.status, r.comment
+       FROM reservations r
+       JOIN users u ON u.id = r.user_id
+       JOIN equipment e ON e.id = r.equipment_id
+       ORDER BY r.start_date`,
+    )
+    .all();
+  res.json(rows);
+});
+
+// Zatwierdzenie lub odrzucenie rezerwacji (tylko admin)
+app.patch(
+  "/api/admin/reservations/:id",
+  authRequired,
+  adminRequired,
+  (req, res) => {
+    const id = Number(req.params.id);
+    const { status } = req.body;
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Niepoprawny identyfikator" });
+    }
+    if (status !== "approved" && status !== "rejected") {
+      return res
+        .status(400)
+        .json({ error: "Status musi być approved albo rejected" });
+    }
+
+    const reservation = db
+      .prepare("SELECT status FROM reservations WHERE id = ?")
+      .get(id);
+    if (!reservation) {
+      return res.status(404).json({ error: "Nie ma takiej rezerwacji" });
+    }
+    if (reservation.status !== "pending") {
+      return res
+        .status(409)
+        .json({ error: "Tę rezerwację już rozpatrzono lub odwołano" });
+    }
+
+    db.prepare("UPDATE reservations SET status = ? WHERE id = ?").run(
+      status,
+      id,
+    );
+    res.json({ ok: true });
+  },
+);
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Serwer działa na http://localhost:${PORT}`);
