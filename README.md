@@ -1,7 +1,7 @@
 # Rezerwacja sprzętu szkolnego
 
 ## Autor
-Michał Węglarczyk (projekt indywidualny)
+Michał Węglarczyk i Jakub Palej
 
 ## Cel aplikacji
 Aplikacja jest dla uczniów oraz opiekuna pracowni. Rozwiązuje problem papierowych
