@@ -286,7 +286,25 @@ app.patch(
     res.json({ ok: true });
   },
 );
+app.delete('/api/equipment/:id', authRequired, adminRequired, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Niepoprawny identyfikator' });
+  }
 
+  const item = db.prepare('SELECT id FROM equipment WHERE id = ?').get(id);
+  if (!item) {
+    return res.status(404).json({ error: 'Nie ma takiego sprzętu' });
+  }
+
+  const used = db.prepare('SELECT id FROM reservations WHERE equipment_id = ? LIMIT 1').get(id);
+  if (used) {
+    return res.status(409).json({ error: 'Nie można usunąć sprzętu, który ma rezerwacje' });
+  }
+
+  db.prepare('DELETE FROM equipment WHERE id = ?').run(id);
+  res.json({ ok: true });
+});
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Serwer działa na http://localhost:${PORT}`);
