@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { api } from "./api";
+import AdminPanel from './AdminPanel';
 
 export default function App() {
   const [token, setToken] = useState(sessionStorage.getItem("token"));
+  const [role, setRole] = useState(sessionStorage.getItem('role'));
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +55,8 @@ export default function App() {
         body: { email, password },
       });
       sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem('role', data.role);
+      setRole(data.role);
       setToken(data.token);
       setPassword("");
     } catch (err) {
@@ -218,6 +222,7 @@ export default function App() {
           ))}
         </tbody>
       </table>
+      {role === 'admin' && <AdminPanel token={token} />}
     </div>
   );
 }
