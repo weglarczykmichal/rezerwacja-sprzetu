@@ -1,8 +1,8 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 
-const db = new Database('rezerwacje.db');
+const db = new DatabaseSync('rezerwacje.db');
 
-db.pragma('foreign_keys = ON');
+db.exec('PRAGMA foreign_keys = ON');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
