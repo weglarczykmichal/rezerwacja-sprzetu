@@ -7,10 +7,12 @@ export default function AdminPanel({ token }) {
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [equipment, setEquipment] = useState([]);
 
   async function load() {
     try {
       setReservations(await api('/admin/reservations', { token }));
+      setEquipment(await api('/equipment', { token }));
     } catch (err) {
       setError(err.message);
     }
@@ -48,6 +50,18 @@ export default function AdminPanel({ token }) {
       setError(err.message);
     }
   }
+
+  async function deleteEquipment(id) {
+  setError('');
+  setMessage('');
+  try {
+    await api(`/equipment/${id}`, { method: 'DELETE', token });
+    setMessage('Usunięto sprzęt');
+    await load();
+  } catch (err) {
+    setError(err.message);
+  }
+}
 
   return (
     <div style={{ marginTop: 40, borderTop: '2px solid #888' }}>
@@ -109,6 +123,15 @@ export default function AdminPanel({ token }) {
         <br />
         <button type="submit">Dodaj</button>
       </form>
+      <h3>Sprzęt w systemie</h3>
+      <ul>
+      {equipment.map((item) => (
+        <li key={item.id}>
+            {item.name}{' '}
+            <button onClick={() => deleteEquipment(item.id)}>Usuń</button>
+        </li>
+       ))}
+      </ul>
     </div>
   );
 }
