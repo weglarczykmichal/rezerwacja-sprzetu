@@ -17,7 +17,7 @@ a opiekun pracowni zatwierdza rezerwację.
 3. Uczeń rezerwuje sprzęt na termin (data od - do) i może dodać komentarz.
 4. Uczeń widzi swoje rezerwacje i może odwołać wybraną z nich.
 5. Opiekun widzi wszystkie rezerwacje i zatwierdza lub odrzuca oczekujące.
-6. Opiekun dodaje sprzęt do listy.
+6. Opiekun usuwa i dodaje sprzęt do listy.
 
 ## Technologie i dane
 - Interfejs: React (Vite)
