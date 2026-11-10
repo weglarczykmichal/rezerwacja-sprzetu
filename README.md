@@ -105,7 +105,7 @@ Status rezerwacji przed próbą i po niej: `pending`. Rezerwacja pozostała bez 
 **Co sprawdziłem:** zapisałem komentarz `<b>Próba</b>` do rezerwacji.
 **Wynik:** serwer zapisuje i zwraca tekst bez zmian, a interfejs wyświetla go
 **dosłownie** (ze znacznikami, bez pogrubienia), bo React traktuje treść jako tekst.
-[UZUPEŁNIJ: jedno zdanie, co widać w tabeli "Moje rezerwacje" w przeglądarce]
+W tabeli widać dosłownie tekst <b>Próba</b>, bez pogrubienia
 
 ![Test 3](docs/test3.png)
 
